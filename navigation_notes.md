@@ -108,3 +108,9 @@ int main(int argc,char* argv[])
 >>2.解决方案之二，教程里面的xacro文件的libgazebo_ros_skid_steer_drive.so插件本身已经提供这个功能，只是教程有bug，没选上
 
 >>将`<broadcastTF>0</broadcastTF>`改为`<broadcastTF>1</broadcastTF>`即可
+
+## 最重要的心得
+1. 遇到不认识的包，先上ros wiki看介绍，搞清楚功能，以及input和output的topic
+2. 看懂roslaunch每个节点的功能，可以有助于解决问题
+3. 解决问题的过程就是在学习？
+4. 教材有坑
