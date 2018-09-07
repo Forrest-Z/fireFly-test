@@ -71,7 +71,9 @@
 
 >`rosrun tf static_transform_publisher 0 0 0 0 0 0 odom base_footprint 100`
 
->发现在rviz里面从找不到link，成功实现了地图的构建
+>发现在rviz里面从找不到link，到成功实现了地图的构建
+但是仅仅只有初始状态下正常，而开始运动后就不正常
+>原因：初始状态下odom和base_printfoot是重合的，所以静态的0 0 0 0 0 0 是符合的，但是运动后tf要发生改变，静态的不可能满足情况。
 
 >> 1. 解决方案之一，自己编写补充从odom到base_footprint的变换
 ```c++
