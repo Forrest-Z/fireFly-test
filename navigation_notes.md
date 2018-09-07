@@ -65,4 +65,46 @@
 
 </launch>
 ```
+### 遇到的问题
+- [x] 构建地图的时候提示，找不到从odom到base_footprint的tf
+>解决方案的发现，尝试着自己添加静态的odom到base_footprint的tf
 
+>`rosrun tf static_transform_publisher 0 0 0 0 0 0 odom base_footprint 100`
+
+>发现在rviz里面从找不到link，成功实现了地图的构建
+
+>> 1. 解决方案之一，自己编写补充从odom到base_footprint的变换
+```c++
+#include <ros/ros.h>
+#include <sensor_msgs/JointState.h>
+#include <tf/transform_broadcaster.h>
+#include <nav_msgs/Odometry.h>
+
+geometry_msgs::TransformStamped odom_trans;
+tf::TransformBroadcaster *broadcaster_p;
+void odomCallback(const nav_msgs::Odometry& msg)
+{
+  odom_trans.header.stamp = ros::Time::now();
+  odom_trans.transform.translation.x = msg.pose.pose.position.x;
+  odom_trans.transform.translation.y = msg.pose.pose.position.y; 
+  odom_trans.transform.translation.z = 0.0;
+  odom_trans.transform.rotation = msg.pose.pose.orientation;
+  broadcaster_p->sendTransform(odom_trans);
+}
+
+int main(int argc,char* argv[])
+{
+    ros::init(argc,argv,"odomToBase");
+    ros::NodeHandle n;
+    odom_trans.header.frame_id = "odom";
+	odom_trans.child_frame_id = "base_footprint";
+    tf::TransformBroadcaster broadcaster;
+    broadcaster_p=&broadcaster;
+    ros::Subscriber sub=n.subscribe("odom",1000,odomCallback);
+    ros::spin();
+    return 0;
+}
+```
+>>2.解决方案之二，教程里面的xacro文件的libgazebo_ros_skid_steer_drive.so插件本身已经提供这个功能，只是教程有bug，没选上
+
+>>将`<broadcastTF>0</broadcastTF>`改为`<broadcastTF>1</broadcastTF>`即可
