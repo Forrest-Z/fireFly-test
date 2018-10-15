@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+    
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find myPathPlanner)/launch/myConfig.rviz" />
+    <node name="myPathPlanner" pkg="myPathPlanner" type="getPath" />
+    <include file="$(find myPathPlanner)/launch/display_xacro.launch" >
+  </include> 
+</launch>
