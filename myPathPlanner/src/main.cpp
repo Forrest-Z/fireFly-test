@@ -4,42 +4,53 @@
 #include<string>
 #include<tf/tf.h>
 #include<vector>
-#include <nav_msgs/Path.h>
-#include <std_msgs/String.h>
-#include <geometry_msgs/Quaternion.h>
-#include <geometry_msgs/PoseStamped.h>
+#include<nav_msgs/Path.h>
+#include<std_msgs/String.h>
+#include<geometry_msgs/Quaternion.h>
+#include<geometry_msgs/PoseStamped.h>
 #include<geometry_msgs/PointStamped.h>
 #include<geometry_msgs/PoseArray.h>
-double degree2rad(double deg)
-{
-    return deg*M_PI/180.0f;
-}
-double rad2degree(double rad)
-{
-    return rad/M_PI*180.0f;
-}
+#include"spline.h"
+#include"hybridAstar.h"
+#include"path.h"
+#include<ctime>
+#include<sys/time.h>
+
 using namespace std;
-struct point2d{
-    double x;
-    double y;
-    point2d(double x=0,double y=0)
-    {
-        this->x=x;
-        this->y=y;
+using namespace PT;
+unsigned long long GetCurrentTimeMsec()
+{
+#ifdef _WIN32
+		struct timeval tv;
+		time_t clock;
+		struct tm tm;
+		SYSTEMTIME wtm;
+
+		GetLocalTime(&wtm);
+		tm.tm_year = wtm.wYear - 1900;
+		tm.tm_mon = wtm.wMonth - 1;
+		tm.tm_mday = wtm.wDay;
+		tm.tm_hour = wtm.wHour;
+		tm.tm_min = wtm.wMinute;
+		tm.tm_sec = wtm.wSecond;
+		tm.tm_isdst = -1;
+		clock = mktime(&tm);
+		tv.tv_sec = clock;
+		tv.tv_usec = wtm.wMilliseconds * 1000;
+		return ((unsigned long long)tv.tv_sec * 1000 + (unsigned long long)tv.tv_usec / 1000);
+#else
+        struct timeval tv;
+        gettimeofday(&tv,NULL);
+        return ((unsigned long long)tv.tv_sec * 1000 + (unsigned long long)tv.tv_usec / 1000);
+#endif
     }
-};
-struct tpose{
-    point2d p;
-    double yaw;
-    tpose(point2d p,double yaw)
-    {
-        this->p=p;
-        this->yaw=yaw;
-    }
-};
-void showPath(vector<point2d> &pointSet,ros::Publisher &pub);
+
+
+
+void showPath(vector<point2d> &pointSet,vector<double> &yaw,ros::Publisher &pub);
 void showPose(vector<point2d> p,vector<double> yaw,ros::Publisher& pub);
 void showPoint(point2d &p,ros::Publisher & pub);
+
 int main(int argc,char**argv)
 {
     ros::init(argc,argv,"myPathPlanner");
@@ -50,31 +61,42 @@ int main(int argc,char**argv)
     tf::TransformBroadcaster broadcaster;
     geometry_msgs::TransformStamped odom_trans;
     odom_trans.header.frame_id="odom";
-    odom_trans.child_frame_id="base_link";
+    odom_trans .child_frame_id="base_link";
     ros::Rate loop_rate(30);
     bool init=false;
-    tpose start_point(point2d(0,0),degree2rad(45));
-    tpose end_point(point2d(50,50),degree2rad(90));
-    vector<point2d> path={start_point.p,end_point.p};
+    tpose end_point(point2d(0,15),degree2rad(15));
+    tpose start_point(point2d(0,0),degree2rad(270));
+
+
+    vector<point2d> poseP={start_point.p,end_point.p};
     vector<double> yaw={start_point.yaw,end_point.yaw};
+    PT::pathPlanner myPathPlanner;
+    myPathPlanner.setConstraints(start_point,end_point,10);
+    tpath path=myPathPlanner.getOptimalPath();
+
+    int playerIndex=0;
     while(ros::ok())
     {
     
-        showPath(path,path_pub);
-        showPose(path,yaw,pose_pub);
+        showPath(path.pointS,path.yaw,path_pub);
+        showPose(poseP,yaw,pose_pub);
         
         odom_trans.header.stamp=ros::Time::now();
-        odom_trans.transform.translation.x=0;
-        odom_trans.transform.translation.y=0;
+        odom_trans.transform.translation.x=path.pointS[playerIndex].x;
+        odom_trans.transform.translation.y=path.pointS[playerIndex].y;
         odom_trans.transform.translation.z=0.0;
-        odom_trans.transform.rotation=tf::createQuaternionMsgFromYaw(start_point.yaw);//姿态
+        odom_trans.transform.rotation=tf::createQuaternionMsgFromYaw(path.yaw[playerIndex]);//姿态
         broadcaster.sendTransform(odom_trans);
         ros::spinOnce();
         loop_rate.sleep();
+        if(playerIndex<path.pointS.size()-1)
+            playerIndex++;
+        else
+            playerIndex=0;
     }
     return 0;
 }
-void showPath(vector<point2d> &pointSet,ros::Publisher &pub)
+void showPath(vector<point2d> &pointSet,vector<double> &yaw,ros::Publisher &pub)
 {
     geometry_msgs::PoseStamped this_pose_stamped;
     nav_msgs::Path path;
@@ -87,6 +109,8 @@ void showPath(vector<point2d> &pointSet,ros::Publisher &pub)
         
         this_pose_stamped.header.stamp=ros::Time::now();
         this_pose_stamped.header.frame_id="odom";
+
+        this_pose_stamped.pose.orientation=tf::createQuaternionMsgFromYaw(yaw[i]);
         path.poses.push_back(this_pose_stamped);        
     }
     pub.publish(path);

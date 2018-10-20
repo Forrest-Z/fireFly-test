@@ -200,5 +200,11 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+add_library(hybrid_breadth_first src/hybridAstar.cpp)
+add_library(path src/path.cpp)
+
 add_executable(getPath src/main.cpp)
 target_link_libraries(getPath ${catkin_LIBRARIES})
+target_link_libraries(path hybrid_breadth_first)
+target_link_libraries(getPath hybrid_breadth_first)
+target_link_libraries(getPath path)
