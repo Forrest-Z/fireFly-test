@@ -132,8 +132,6 @@ vector<maze_s> hbf::expand(maze_s cur)
     double x=cur.x;
     double y=cur.y;
     double theta=cur.theta;
-    if(cur.dir==-1)
-        theta=cur.theta-M_PI;//转为正向的角度
     double g2=g+(*myMap)[idx(y)][idx(x)];
     double asternG2=g+(*myMap)[idx(y)][idx(x)]*2;
     double asternTimes=cur.asternTimes;
