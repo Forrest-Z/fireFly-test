@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+    
+    <node name="rviz" pkg="rviz" type="rviz" args="-d $(find myPathPlanner)/launch/myConfig.rviz" />
+    <node name="newAStar" pkg="newAStar" type="AStest" />
+    <include file="$(find newAStar)/launch/display_xacro.launch" >
+  </include> 
+</launch>
